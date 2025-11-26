@@ -85,14 +85,57 @@ enum Role { USER, ADMIN, MODERATOR }
 - Prisma scripts qo'shildi
 - To'g'ri folder structure (6 ta yangi papka)
 
-**📋 Keyingi Qadamlar:**
-- [ ] JWT authentication + bcrypt
-- [ ] Validation (zod)
-- [ ] Logging (winston)
-- [ ] Testing (jest)
-- [ ] API docs (swagger)
-- [ ] CORS, helmet, rate-limiting
+## 🔐 Authentication
+
+The backend implements JWT-based authentication with bcrypt password hashing and role-based access control.
+
+### Authentication Features
+
+- User registration and login endpoints
+- JWT token generation and verification
+- Bcrypt password hashing (10 salt rounds)
+- Role-based access control (USER, MODERATOR, ADMIN)
+- HTTP-only cookies and Bearer token support
+- CORS configuration for frontend integration
+- Protected routes middleware
+
+### API Endpoints
+
+**Public:**
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - Authenticate user
+- `POST /api/auth/logout` - Clear authentication cookie
+
+**Protected:**
+- `GET /api/auth/me` - Get current user (requires authentication)
+- `GET /api/users/profile` - Get user profile (requires authentication)
+- `GET /api/users` - List all users (requires ADMIN role)
+- `GET /api/users/moderator-only` - Moderator endpoint (requires MODERATOR or ADMIN role)
+
+### Environment Configuration
+
+Required environment variables:
+
+```env
+JWT_SECRET=<your-secret-key>
+JWT_EXPIRES_IN=7d
+CORS_ORIGIN=http://localhost:3001
+```
+
+**Security Note:** Generate a cryptographically secure JWT_SECRET for production:
+```bash
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+```
+
+### Complete Documentation
+
+See [AUTH.md](backend/AUTH.md) for:
+- Complete API documentation
+- Frontend integration guidelines
+- Security implementation details
+- Production deployment guide
+- Troubleshooting reference
 
 ---
 
-**Tech:** Node.js · TypeScript · Express 5 · Prisma · PostgreSQL
+**Technology Stack:** Node.js · TypeScript · Express 5 · Prisma · PostgreSQL · bcrypt · jsonwebtoken

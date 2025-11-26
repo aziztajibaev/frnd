@@ -3,3 +3,9 @@ export interface HealthResponse {
   database: 'Connected' | 'Disconnected';
   timestamp: string;
 }
+
+export enum Role {
+  USER = 'USER',
+  ADMIN = 'ADMIN',
+  MODERATOR = 'MODERATOR'
+}
