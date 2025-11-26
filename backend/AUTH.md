@@ -1,16 +1,32 @@
 # Authentication & Authorization Guide
 
-This backend uses **JWT (JSON Web Tokens)** for secure, stateless authentication, designed to work seamlessly with Angular frontends.
+This backend implements JWT (JSON Web Tokens) authentication with bcrypt password hashing, designed for seamless integration with Angular frontends.
 
-## 🔐 Overview
+## Table of Contents
 
-- **JWT-based authentication** - Stateless and scalable
-- **bcrypt password hashing** - Secure password storage (10 salt rounds)
-- **Role-based access control (RBAC)** - USER, MODERATOR, ADMIN
-- **HTTP-only cookies + Bearer tokens** - Dual token storage options
-- **CORS enabled** - Ready for Angular integration
+- [Overview](#overview)
+- [Environment Setup](#environment-setup)
+- [API Endpoints](#api-endpoints)
+- [Angular Integration](#angular-integration)
+- [Security Features](#security-features)
+- [Middleware Usage](#middleware-usage)
+- [Testing with cURL](#testing-with-curl)
+- [User Roles](#user-roles)
+- [Troubleshooting](#troubleshooting)
+- [Production Deployment](#production-deployment)
+- [Implementation Notes](#implementation-notes)
 
-## 📋 Environment Setup
+## Overview
+
+The authentication system provides:
+
+- **JWT-based authentication** - Stateless and scalable token management
+- **bcrypt password hashing** - Industry-standard password security (10 salt rounds)
+- **Role-based access control (RBAC)** - Three-tier permission system (USER, MODERATOR, ADMIN)
+- **Dual token storage** - HTTP-only cookies and Bearer token support
+- **CORS configuration** - Pre-configured for Angular development
+
+## Environment Setup
 
 Add these variables to your `.env` file:
 
@@ -482,17 +498,6 @@ curl -X GET http://localhost:3000/api/auth/me \
 | `MODERATOR` | Moderate content | USER permissions + content moderation |
 | `ADMIN` | Full access | All permissions + user management |
 
-## 🚀 Next Steps
-
-1. **Add refresh tokens** - Implement token refresh mechanism
-2. **Email verification** - Add email confirmation on registration
-3. **Password reset** - Implement forgot password flow
-4. **Rate limiting** - Add rate limits to auth endpoints
-5. **2FA** - Two-factor authentication support
-6. **OAuth** - Social login (Google, GitHub, etc.)
-7. **Session management** - Track active sessions
-8. **Audit logging** - Log authentication events
-
 ## 🔧 Troubleshooting
 
 ### CORS Issues
@@ -511,6 +516,82 @@ If you get CORS errors in Angular:
 1. Verify token is valid and not expired
 2. Check user still exists in database
 3. Ensure authenticate middleware is applied to route
+
+## Production Deployment
+
+### Security Checklist
+
+Before deploying to production:
+
+1. **JWT Secret**: Generate a cryptographically secure secret
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+   ```
+
+2. **Environment Variables**: Never commit `.env` files
+   - Set `JWT_SECRET` on your hosting platform
+   - Configure `CORS_ORIGIN` to match your production frontend URL
+   - Set `NODE_ENV=production`
+
+3. **HTTPS**: Always use HTTPS in production
+   - HTTP-only cookies require `secure: true` flag (automatically enabled in production)
+   - Update `CORS_ORIGIN` to use `https://` protocol
+
+4. **Database**: Ensure database connection is secure
+   - Use SSL/TLS connections
+   - Restrict database access by IP
+   - Use strong database credentials
+
+### Example Production Environment
+
+```env
+NODE_ENV=production
+PORT=3000
+DATABASE_URL=postgresql://user:pass@prod-db.example.com:5432/frnd?sslmode=require
+JWT_SECRET=<64-byte-hex-string>
+JWT_EXPIRES_IN=7d
+CORS_ORIGIN=https://app.example.com
+```
+
+## Implementation Notes
+
+### Token Storage Strategy
+
+This implementation supports two token storage methods:
+
+1. **HTTP-only Cookies** (Recommended for web browsers)
+   - More secure against XSS attacks
+   - Automatically sent with requests to same origin
+   - Token stored in `token` cookie
+
+2. **localStorage/Bearer Token** (Required for mobile apps)
+   - Token returned in API response body
+   - Client must include in `Authorization: Bearer <token>` header
+   - Necessary for React Native, mobile apps, etc.
+
+### Password Requirements
+
+Current implementation enforces:
+- Minimum 6 characters
+- Valid email format
+- No duplicate emails
+
+Consider adding additional validation for production:
+- Password complexity requirements
+- Email verification workflow
+- Account lockout after failed attempts
+
+### Role Assignment
+
+User roles can be assigned during registration or modified later. To prevent unauthorized role escalation:
+
+```typescript
+// Only allow admins to assign ADMIN or MODERATOR roles
+if (data.role && data.role !== Role.USER) {
+  // Verify requesting user is an admin
+  // This check should be added to the register endpoint
+}
+```
 
 ---
 

@@ -87,28 +87,54 @@ enum Role { USER, ADMIN, MODERATOR }
 
 ## 🔐 Authentication
 
-JWT-based authentication with bcrypt password hashing, ready for Angular integration.
+The backend implements JWT-based authentication with bcrypt password hashing and role-based access control.
 
-**Features:**
-- ✅ User registration & login
-- ✅ JWT token generation & verification
-- ✅ Password hashing with bcrypt
-- ✅ Role-based access control (USER, MODERATOR, ADMIN)
-- ✅ HTTP-only cookies + Bearer tokens
-- ✅ CORS configured for Angular frontend
-- ✅ Protected routes middleware
+### Authentication Features
 
-**See [AUTH.md](backend/AUTH.md)** for complete documentation and Angular integration guide.
+- User registration and login endpoints
+- JWT token generation and verification
+- Bcrypt password hashing (10 salt rounds)
+- Role-based access control (USER, MODERATOR, ADMIN)
+- HTTP-only cookies and Bearer token support
+- CORS configured for Angular frontend
+- Protected routes middleware
 
-**📋 Keyingi Qadamlar:**
-- [x] JWT authentication + bcrypt
-- [x] CORS
-- [ ] Validation (zod)
-- [ ] Logging (winston)
-- [ ] Testing (jest)
-- [ ] API docs (swagger)
-- [ ] Helmet, rate-limiting
+### API Endpoints
+
+**Public:**
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - Authenticate user
+- `POST /api/auth/logout` - Clear authentication cookie
+
+**Protected:**
+- `GET /api/auth/me` - Get current user (requires authentication)
+- `GET /api/users/profile` - Get user profile (requires authentication)
+- `GET /api/users` - List all users (requires ADMIN role)
+- `GET /api/users/moderator-only` - Moderator endpoint (requires MODERATOR or ADMIN role)
+
+### Environment Configuration
+
+Required environment variables:
+
+```env
+JWT_SECRET=<your-secret-key>
+JWT_EXPIRES_IN=7d
+CORS_ORIGIN=http://localhost:4200
+```
+
+**Security Note:** Generate a cryptographically secure JWT_SECRET for production:
+```bash
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+```
+
+### Complete Documentation
+
+See [AUTH.md](backend/AUTH.md) for:
+- Complete API documentation
+- Angular integration guide
+- Security implementation details
+- Troubleshooting guide
 
 ---
 
-**Tech:** Node.js · TypeScript · Express 5 · Prisma · PostgreSQL
+**Technology Stack:** Node.js · TypeScript · Express 5 · Prisma · PostgreSQL · bcrypt · jsonwebtoken
