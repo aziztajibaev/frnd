@@ -1,30 +1,22 @@
-import express, {Request, Response} from 'express';
-import { prisma } from './lib/prisma';
+import express from 'express';
+import { config } from './config/env';
+import healthRoutes from './routes/health.routes';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
+// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Routes
+app.use('/api', healthRoutes);
 
-app.get('/api/health', async (_req: Request, res: Response) => {
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-    res.json({
-      status: 'OK',
-      database: 'Connected',
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    res.status(503).json({
-      status: 'ERROR',
-      database: 'Disconnected',
-      timestamp: new Date().toISOString()
-    });
-  }
-});
+// Error handling
+app.use(notFoundHandler);
+app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`The server is running at http://localhost:${PORT}`);
+app.listen(config.port, () => {
+  console.log(`🚀 Server running at http://localhost:${config.port}`);
+  console.log(`📊 Environment: ${config.nodeEnv}`);
 });
