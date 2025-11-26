@@ -96,7 +96,7 @@ The backend implements JWT-based authentication with bcrypt password hashing and
 - Bcrypt password hashing (10 salt rounds)
 - Role-based access control (USER, MODERATOR, ADMIN)
 - HTTP-only cookies and Bearer token support
-- CORS configured for Angular frontend
+- CORS configuration for frontend integration
 - Protected routes middleware
 
 ### API Endpoints
@@ -119,7 +119,7 @@ Required environment variables:
 ```env
 JWT_SECRET=<your-secret-key>
 JWT_EXPIRES_IN=7d
-CORS_ORIGIN=http://localhost:4200
+CORS_ORIGIN=http://localhost:3001
 ```
 
 **Security Note:** Generate a cryptographically secure JWT_SECRET for production:
@@ -131,7 +131,7 @@ node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 
 See [AUTH.md](backend/AUTH.md) for:
 - Complete API documentation
-- Angular integration guide
+- Frontend integration examples
 - Security implementation details
 - Troubleshooting guide
 

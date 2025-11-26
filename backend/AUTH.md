@@ -1,13 +1,13 @@
 # Authentication & Authorization Guide
 
-This backend implements JWT (JSON Web Tokens) authentication with bcrypt password hashing, designed for seamless integration with Angular frontends.
+This backend implements JWT (JSON Web Tokens) authentication with bcrypt password hashing, designed for seamless integration with modern frontend frameworks.
 
 ## Table of Contents
 
 - [Overview](#overview)
 - [Environment Setup](#environment-setup)
 - [API Endpoints](#api-endpoints)
-- [Angular Integration](#angular-integration)
+- [Frontend Integration](#frontend-integration)
 - [Security Features](#security-features)
 - [Middleware Usage](#middleware-usage)
 - [Testing with cURL](#testing-with-curl)
@@ -24,7 +24,7 @@ The authentication system provides:
 - **bcrypt password hashing** - Industry-standard password security (10 salt rounds)
 - **Role-based access control (RBAC)** - Three-tier permission system (USER, MODERATOR, ADMIN)
 - **Dual token storage** - HTTP-only cookies and Bearer token support
-- **CORS configuration** - Pre-configured for Angular development
+- **CORS configuration** - Configurable for any frontend framework
 
 ## Environment Setup
 
@@ -35,8 +35,8 @@ Add these variables to your `.env` file:
 JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
 JWT_EXPIRES_IN=7d
 
-# CORS Configuration (Angular frontend URL)
-CORS_ORIGIN=http://localhost:4200
+# CORS Configuration (Frontend URL)
+CORS_ORIGIN=http://localhost:3001
 ```
 
 ⚠️ **IMPORTANT**: Generate a strong JWT_SECRET for production:
@@ -121,286 +121,192 @@ GET /api/users/moderator-only
 Authorization: Bearer {token}
 ```
 
-## 🎯 Angular Integration
+## Frontend Integration
 
-### 1. Create Auth Service
+This API can be integrated with any frontend framework or library. Below are general guidelines and examples.
 
-```typescript
-// src/app/services/auth.service.ts
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, BehaviorSubject } from 'rxjs';
-import { tap } from 'rxjs/operators';
+### Authentication Flow
 
-interface User {
-  id: number;
-  email: string;
-  name?: string;
-  role: 'USER' | 'MODERATOR' | 'ADMIN';
+1. **User Registration/Login**
+   - Send credentials to `/api/auth/register` or `/api/auth/login`
+   - Receive JWT token in response
+   - Store token securely (localStorage, sessionStorage, or use HTTP-only cookies)
+
+2. **Authenticated Requests**
+   - Include token in `Authorization` header: `Bearer <token>`
+   - Server validates token and authorizes request
+   - On 401 response, redirect to login
+
+3. **Logout**
+   - Clear stored token
+   - Optionally call `/api/auth/logout` to clear HTTP-only cookie
+
+### JavaScript/Fetch Example
+
+```javascript
+// Login function
+async function login(email, password) {
+  const response = await fetch('http://localhost:3000/api/auth/login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, password }),
+    credentials: 'include', // Include cookies
+  });
+
+  const data = await response.json();
+
+  if (data.success) {
+    // Store token in localStorage
+    localStorage.setItem('token', data.data.token);
+    return data.data.user;
+  } else {
+    throw new Error(data.message);
+  }
 }
 
-interface AuthResponse {
-  success: boolean;
-  data: {
-    user: User;
-    token: string;
-  };
+// Make authenticated request
+async function fetchProtectedData() {
+  const token = localStorage.getItem('token');
+
+  const response = await fetch('http://localhost:3000/api/auth/me', {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+    credentials: 'include',
+  });
+
+  if (response.status === 401) {
+    // Token expired or invalid - redirect to login
+    window.location.href = '/login';
+    return;
+  }
+
+  return await response.json();
 }
 
-@Injectable({
-  providedIn: 'root'
-})
-export class AuthService {
-  private apiUrl = 'http://localhost:3000/api/auth';
-  private currentUserSubject = new BehaviorSubject<User | null>(null);
-  public currentUser$ = this.currentUserSubject.asObservable();
+// Logout function
+async function logout() {
+  await fetch('http://localhost:3000/api/auth/logout', {
+    method: 'POST',
+    credentials: 'include',
+  });
 
-  constructor(private http: HttpClient) {
-    this.loadUserFromToken();
-  }
-
-  register(email: string, password: string, name?: string): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/register`, {
-      email,
-      password,
-      name
-    }).pipe(
-      tap(response => {
-        if (response.success) {
-          this.setToken(response.data.token);
-          this.currentUserSubject.next(response.data.user);
-        }
-      })
-    );
-  }
-
-  login(email: string, password: string): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/login`, {
-      email,
-      password
-    }).pipe(
-      tap(response => {
-        if (response.success) {
-          this.setToken(response.data.token);
-          this.currentUserSubject.next(response.data.user);
-        }
-      })
-    );
-  }
-
-  logout(): void {
-    this.removeToken();
-    this.currentUserSubject.next(null);
-    this.http.post(`${this.apiUrl}/logout`, {}).subscribe();
-  }
-
-  getMe(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/me`).pipe(
-      tap(response => {
-        if (response.success) {
-          this.currentUserSubject.next(response.data.user);
-        }
-      })
-    );
-  }
-
-  getToken(): string | null {
-    return localStorage.getItem('token');
-  }
-
-  private setToken(token: string): void {
-    localStorage.setItem('token', token);
-  }
-
-  private removeToken(): void {
-    localStorage.removeItem('token');
-  }
-
-  private loadUserFromToken(): void {
-    const token = this.getToken();
-    if (token) {
-      this.getMe().subscribe();
-    }
-  }
-
-  isAuthenticated(): boolean {
-    return !!this.getToken();
-  }
-
-  hasRole(roles: string[]): boolean {
-    const user = this.currentUserSubject.value;
-    return user ? roles.includes(user.role) : false;
-  }
+  localStorage.removeItem('token');
+  window.location.href = '/login';
 }
 ```
 
-### 2. Create HTTP Interceptor
+### Axios Example
 
-```typescript
-// src/app/interceptors/auth.interceptor.ts
-import { Injectable } from '@angular/core';
-import {
-  HttpRequest,
-  HttpHandler,
-  HttpEvent,
-  HttpInterceptor,
-  HttpErrorResponse
-} from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
-import { AuthService } from '../services/auth.service';
-import { Router } from '@angular/router';
+```javascript
+import axios from 'axios';
 
-@Injectable()
-export class AuthInterceptor implements HttpInterceptor {
-  constructor(
-    private authService: AuthService,
-    private router: Router
-  ) {}
+// Create axios instance with base configuration
+const api = axios.create({
+  baseURL: 'http://localhost:3000/api',
+  withCredentials: true,
+});
 
-  intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    const token = this.authService.getToken();
-
-    // Add Authorization header if token exists
+// Request interceptor to add token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
     if (token) {
-      request = request.clone({
-        setHeaders: {
-          Authorization: `Bearer ${token}`
-        }
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response interceptor to handle 401 errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Usage
+async function login(email, password) {
+  const { data } = await api.post('/auth/login', { email, password });
+  localStorage.setItem('token', data.data.token);
+  return data.data.user;
+}
+
+async function getProfile() {
+  const { data } = await api.get('/auth/me');
+  return data.data.user;
+}
+```
+
+### React Hook Example
+
+```javascript
+import { useState, useEffect } from 'react';
+
+function useAuth() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      fetchUser();
+    } else {
+      setLoading(false);
+    }
+  }, []);
+
+  async function fetchUser() {
+    try {
+      const response = await fetch('http://localhost:3000/api/auth/me', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
       });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.data.user);
+      } else {
+        localStorage.removeItem('token');
+      }
+    } catch (error) {
+      console.error('Failed to fetch user:', error);
+    } finally {
+      setLoading(false);
     }
-
-    return next.handle(request).pipe(
-      catchError((error: HttpErrorResponse) => {
-        if (error.status === 401) {
-          // Token expired or invalid
-          this.authService.logout();
-          this.router.navigate(['/login']);
-        }
-        return throwError(() => error);
-      })
-    );
   }
-}
-```
 
-### 3. Register in app.config.ts
-
-```typescript
-// src/app/app.config.ts
-import { ApplicationConfig } from '@angular/core';
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { AuthInterceptor } from './interceptors/auth.interceptor';
-
-export const appConfig: ApplicationConfig = {
-  providers: [
-    provideHttpClient(
-      withInterceptors([AuthInterceptor])
-    )
-  ]
-};
-```
-
-### 4. Create Route Guard
-
-```typescript
-// src/app/guards/auth.guard.ts
-import { Injectable } from '@angular/core';
-import { Router, CanActivate, ActivatedRouteSnapshot } from '@angular/router';
-import { AuthService } from '../services/auth.service';
-
-@Injectable({
-  providedIn: 'root'
-})
-export class AuthGuard implements CanActivate {
-  constructor(
-    private authService: AuthService,
-    private router: Router
-  ) {}
-
-  canActivate(route: ActivatedRouteSnapshot): boolean {
-    if (!this.authService.isAuthenticated()) {
-      this.router.navigate(['/login']);
-      return false;
-    }
-
-    // Check for required roles
-    const requiredRoles = route.data['roles'] as string[];
-    if (requiredRoles && !this.authService.hasRole(requiredRoles)) {
-      this.router.navigate(['/unauthorized']);
-      return false;
-    }
-
-    return true;
-  }
-}
-```
-
-### 5. Use in Routes
-
-```typescript
-// src/app/app.routes.ts
-import { Routes } from '@angular/router';
-import { AuthGuard } from './guards/auth.guard';
-
-export const routes: Routes = [
-  { path: 'login', component: LoginComponent },
-  { path: 'register', component: RegisterComponent },
-  {
-    path: 'dashboard',
-    component: DashboardComponent,
-    canActivate: [AuthGuard]
-  },
-  {
-    path: 'admin',
-    component: AdminComponent,
-    canActivate: [AuthGuard],
-    data: { roles: ['ADMIN'] }
-  },
-  {
-    path: 'moderator',
-    component: ModeratorComponent,
-    canActivate: [AuthGuard],
-    data: { roles: ['MODERATOR', 'ADMIN'] }
-  }
-];
-```
-
-### 6. Login Component Example
-
-```typescript
-// src/app/components/login/login.component.ts
-import { Component } from '@angular/core';
-import { Router } from '@angular/router';
-import { AuthService } from '../../services/auth.service';
-
-@Component({
-  selector: 'app-login',
-  template: `
-    <form (submit)="onSubmit()">
-      <input type="email" [(ngModel)]="email" name="email" placeholder="Email" required>
-      <input type="password" [(ngModel)]="password" name="password" placeholder="Password" required>
-      <button type="submit">Login</button>
-      <p *ngIf="error" class="error">{{ error }}</p>
-    </form>
-  `
-})
-export class LoginComponent {
-  email = '';
-  password = '';
-  error = '';
-
-  constructor(
-    private authService: AuthService,
-    private router: Router
-  ) {}
-
-  onSubmit(): void {
-    this.authService.login(this.email, this.password).subscribe({
-      next: () => this.router.navigate(['/dashboard']),
-      error: (err) => this.error = err.error.message || 'Login failed'
+  async function login(email, password) {
+    const response = await fetch('http://localhost:3000/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+      credentials: 'include',
     });
+
+    const data = await response.json();
+    if (data.success) {
+      localStorage.setItem('token', data.data.token);
+      setUser(data.data.user);
+    }
+    return data;
   }
+
+  function logout() {
+    localStorage.removeItem('token');
+    setUser(null);
+  }
+
+  return { user, loading, login, logout };
 }
 ```
 
@@ -418,7 +324,7 @@ export class LoginComponent {
 - Tokens sent via both HTTP-only cookies and response body
 
 ### CORS Protection
-- Configured for specific origin (Angular dev server)
+- Configured for specific origin (frontend application)
 - Credentials enabled for cookie support
 - Easily configurable via environment variables
 
@@ -501,10 +407,10 @@ curl -X GET http://localhost:3000/api/auth/me \
 ## 🔧 Troubleshooting
 
 ### CORS Issues
-If you get CORS errors in Angular:
-1. Check `CORS_ORIGIN` in `.env` matches your Angular URL
+If you get CORS errors from your frontend:
+1. Check `CORS_ORIGIN` in `.env` matches your frontend URL
 2. Ensure server is running on http://localhost:3000
-3. Angular dev server should be on http://localhost:4200
+3. Verify frontend application URL matches CORS_ORIGIN
 
 ### Token Not Working
 1. Check token is being sent in `Authorization: Bearer TOKEN` header
@@ -528,7 +434,7 @@ Before deploying to production:
    node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
    ```
 
-2. **Environment Variables**: Never commit `.env` files
+2. **Environment Variables**: Never commit `.env` files to version control
    - Set `JWT_SECRET` on your hosting platform
    - Configure `CORS_ORIGIN` to match your production frontend URL
    - Set `NODE_ENV=production`

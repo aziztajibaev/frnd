@@ -8,5 +8,5 @@ export const config = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
 
   // CORS Configuration
-  corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:4200', // Default Angular dev server
+  corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3001', // Default frontend dev server
 };
