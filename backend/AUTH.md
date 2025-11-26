@@ -44,7 +44,7 @@ CORS_ORIGIN=http://localhost:3001
 node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 ```
 
-## 🛣️ API Endpoints
+## API Endpoints
 
 ### Public Endpoints
 
@@ -123,194 +123,29 @@ Authorization: Bearer {token}
 
 ## Frontend Integration
 
-This API can be integrated with any frontend framework or library. Below are general guidelines and examples.
+The authentication API follows standard JWT practices and can be integrated with any HTTP client.
 
 ### Authentication Flow
 
-1. **User Registration/Login**
-   - Send credentials to `/api/auth/register` or `/api/auth/login`
-   - Receive JWT token in response
-   - Store token securely (localStorage, sessionStorage, or use HTTP-only cookies)
+1. **Registration/Login**
+   - Send POST request to `/api/auth/register` or `/api/auth/login` with credentials
+   - Server responds with JWT token and user object
+   - Store token securely (recommended: HTTP-only cookies for web, secure storage for mobile)
 
 2. **Authenticated Requests**
    - Include token in `Authorization` header: `Bearer <token>`
-   - Server validates token and authorizes request
-   - On 401 response, redirect to login
+   - Server validates token and processes request
+   - Handle 401 responses by redirecting to login
 
-3. **Logout**
-   - Clear stored token
-   - Optionally call `/api/auth/logout` to clear HTTP-only cookie
+3. **Token Storage Options**
+   - **HTTP-only cookies**: Automatically handled by setting `credentials: 'include'` in requests
+   - **Bearer tokens**: Store token and manually include in Authorization header
 
-### JavaScript/Fetch Example
+4. **Logout**
+   - Clear stored token from client
+   - Call `/api/auth/logout` to clear server-side HTTP-only cookie
 
-```javascript
-// Login function
-async function login(email, password) {
-  const response = await fetch('http://localhost:3000/api/auth/login', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ email, password }),
-    credentials: 'include', // Include cookies
-  });
-
-  const data = await response.json();
-
-  if (data.success) {
-    // Store token in localStorage
-    localStorage.setItem('token', data.data.token);
-    return data.data.user;
-  } else {
-    throw new Error(data.message);
-  }
-}
-
-// Make authenticated request
-async function fetchProtectedData() {
-  const token = localStorage.getItem('token');
-
-  const response = await fetch('http://localhost:3000/api/auth/me', {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-    credentials: 'include',
-  });
-
-  if (response.status === 401) {
-    // Token expired or invalid - redirect to login
-    window.location.href = '/login';
-    return;
-  }
-
-  return await response.json();
-}
-
-// Logout function
-async function logout() {
-  await fetch('http://localhost:3000/api/auth/logout', {
-    method: 'POST',
-    credentials: 'include',
-  });
-
-  localStorage.removeItem('token');
-  window.location.href = '/login';
-}
-```
-
-### Axios Example
-
-```javascript
-import axios from 'axios';
-
-// Create axios instance with base configuration
-const api = axios.create({
-  baseURL: 'http://localhost:3000/api',
-  withCredentials: true,
-});
-
-// Request interceptor to add token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// Response interceptor to handle 401 errors
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
-
-// Usage
-async function login(email, password) {
-  const { data } = await api.post('/auth/login', { email, password });
-  localStorage.setItem('token', data.data.token);
-  return data.data.user;
-}
-
-async function getProfile() {
-  const { data } = await api.get('/auth/me');
-  return data.data.user;
-}
-```
-
-### React Hook Example
-
-```javascript
-import { useState, useEffect } from 'react';
-
-function useAuth() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      fetchUser();
-    } else {
-      setLoading(false);
-    }
-  }, []);
-
-  async function fetchUser() {
-    try {
-      const response = await fetch('http://localhost:3000/api/auth/me', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data.data.user);
-      } else {
-        localStorage.removeItem('token');
-      }
-    } catch (error) {
-      console.error('Failed to fetch user:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function login(email, password) {
-    const response = await fetch('http://localhost:3000/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-      credentials: 'include',
-    });
-
-    const data = await response.json();
-    if (data.success) {
-      localStorage.setItem('token', data.data.token);
-      setUser(data.data.user);
-    }
-    return data;
-  }
-
-  function logout() {
-    localStorage.removeItem('token');
-    setUser(null);
-  }
-
-  return { user, loading, login, logout };
-}
-```
-
-## 🔒 Security Features
+## Security Features
 
 ### Password Security
 - Passwords hashed with bcrypt (10 salt rounds)
@@ -333,7 +168,7 @@ function useAuth() {
 - Password strength requirements
 - Duplicate email prevention
 
-## 🛡️ Middleware Usage
+## Middleware Usage
 
 ### Protect Routes (Authentication)
 ```typescript
@@ -367,7 +202,7 @@ router.get('/public-but-enhanced', optionalAuth, (req, res) => {
 });
 ```
 
-## 🧪 Testing with cURL
+## Testing with cURL
 
 ### Register
 ```bash
@@ -396,7 +231,7 @@ curl -X GET http://localhost:3000/api/auth/me \
   -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
 ```
 
-## 📊 User Roles
+## User Roles
 
 | Role | Description | Permissions |
 |------|-------------|-------------|
@@ -404,7 +239,7 @@ curl -X GET http://localhost:3000/api/auth/me \
 | `MODERATOR` | Moderate content | USER permissions + content moderation |
 | `ADMIN` | Full access | All permissions + user management |
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### CORS Issues
 If you get CORS errors from your frontend:

@@ -131,9 +131,10 @@ node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 
 See [AUTH.md](backend/AUTH.md) for:
 - Complete API documentation
-- Frontend integration examples
+- Frontend integration guidelines
 - Security implementation details
-- Troubleshooting guide
+- Production deployment guide
+- Troubleshooting reference
 
 ---
 
