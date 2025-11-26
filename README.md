@@ -85,13 +85,29 @@ enum Role { USER, ADMIN, MODERATOR }
 - Prisma scripts qo'shildi
 - To'g'ri folder structure (6 ta yangi papka)
 
+## 🔐 Authentication
+
+JWT-based authentication with bcrypt password hashing, ready for Angular integration.
+
+**Features:**
+- ✅ User registration & login
+- ✅ JWT token generation & verification
+- ✅ Password hashing with bcrypt
+- ✅ Role-based access control (USER, MODERATOR, ADMIN)
+- ✅ HTTP-only cookies + Bearer tokens
+- ✅ CORS configured for Angular frontend
+- ✅ Protected routes middleware
+
+**See [AUTH.md](backend/AUTH.md)** for complete documentation and Angular integration guide.
+
 **📋 Keyingi Qadamlar:**
-- [ ] JWT authentication + bcrypt
+- [x] JWT authentication + bcrypt
+- [x] CORS
 - [ ] Validation (zod)
 - [ ] Logging (winston)
 - [ ] Testing (jest)
 - [ ] API docs (swagger)
-- [ ] CORS, helmet, rate-limiting
+- [ ] Helmet, rate-limiting
 
 ---
 
