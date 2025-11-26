@@ -5,7 +5,7 @@
 ## Backend:
 ### Development Mode
 ```bash
-npm
+npm run dev
 ```
 
 ### Production Mode
