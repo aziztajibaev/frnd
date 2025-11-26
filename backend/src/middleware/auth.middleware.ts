@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthService, JWTPayload } from '../services/auth.service';
-import { Role } from '../types';
 
 // Extend Express Request type to include user
 declare global {
@@ -79,7 +78,7 @@ export const authenticate = async (
  * Middleware to check if user has required role(s)
  * Must be used after authenticate middleware
  */
-export const authorize = (...allowedRoles: Role[]) => {
+export const authorize = (...allowedRoles: string[]) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
       res.status(401).json({
@@ -89,7 +88,10 @@ export const authorize = (...allowedRoles: Role[]) => {
       return;
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    // Check if user has at least one of the allowed roles
+    const hasRequiredRole = req.user.roles.some((role) => allowedRoles.includes(role));
+
+    if (!hasRequiredRole) {
       res.status(403).json({
         success: false,
         message: 'You do not have permission to access this resource',

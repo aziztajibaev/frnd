@@ -1,6 +1,5 @@
 import { Router, Request, Response } from 'express';
 import { authenticate, authorize } from '../middleware/auth.middleware';
-import { Role } from '../types';
 import { prisma } from '../lib/prisma';
 
 const router = Router();
@@ -18,15 +17,40 @@ router.get('/profile', authenticate, async (req: Request, res: Response) => {
         id: true,
         email: true,
         name: true,
-        role: true,
         createdAt: true,
         updatedAt: true,
+        userRoles: {
+          select: {
+            role: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
 
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+      return;
+    }
+
+    // Extract role names
+    const roles = user.userRoles.map((ur: { role: { name: string } }) => ur.role.name);
+    const { userRoles: _, ...userWithoutUserRoles } = user;
+
     res.json({
       success: true,
-      data: { user },
+      data: {
+        user: {
+          ...userWithoutUserRoles,
+          roles,
+        },
+      },
     });
   } catch (error) {
     res.status(500).json({
@@ -41,22 +65,40 @@ router.get('/profile', authenticate, async (req: Request, res: Response) => {
  * @desc    Get all users (Admin only)
  * @access  Private (Admin only)
  */
-router.get('/', authenticate, authorize(Role.ADMIN), async (_req: Request, res: Response) => {
+router.get('/', authenticate, authorize('ADMIN'), async (_req: Request, res: Response) => {
   try {
     const users = await prisma.user.findMany({
       select: {
         id: true,
         email: true,
         name: true,
-        role: true,
         createdAt: true,
         updatedAt: true,
+        userRoles: {
+          select: {
+            role: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
       },
+    });
+
+    // Format users with roles
+    const usersWithRoles = users.map((user: any) => {
+      const roles = user.userRoles.map((ur: { role: { name: string } }) => ur.role.name);
+      const { userRoles: _, ...userWithoutUserRoles } = user;
+      return {
+        ...userWithoutUserRoles,
+        roles,
+      };
     });
 
     res.json({
       success: true,
-      data: { users },
+      data: { users: usersWithRoles },
     });
   } catch (error) {
     res.status(500).json({
@@ -74,7 +116,7 @@ router.get('/', authenticate, authorize(Role.ADMIN), async (_req: Request, res: 
 router.get(
   '/moderator-only',
   authenticate,
-  authorize(Role.MODERATOR, Role.ADMIN),
+  authorize('MODERATOR', 'ADMIN'),
   async (req: Request, res: Response) => {
     res.json({
       success: true,
