@@ -8,7 +8,7 @@ export class AuthController {
    */
   static async register(req: Request, res: Response): Promise<void> {
     try {
-      const { email, password, name, role } = req.body;
+      const { email, password, name, roleNames } = req.body;
 
       // Basic validation
       if (!email || !password) {
@@ -42,7 +42,7 @@ export class AuthController {
         email,
         password,
         name,
-        role,
+        roleNames,
       });
 
       // Set token in HTTP-only cookie (recommended for production)
