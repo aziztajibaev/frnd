@@ -56,6 +56,7 @@ npm start            # Production
 npm run db:generate  # Prisma client
 npm run db:migrate   # Run migrations
 npm run db:studio    # DB GUI
+npm run db:reset     # Reset database (⚠️ deletes all data!)
 ```
 
 ## 🗄️ Database
@@ -74,6 +75,34 @@ model User {
 
 enum Role { USER, ADMIN, MODERATOR }
 ```
+
+### Database Reset
+
+Database-ni to'liq tozalash va qayta yuklash uchun:
+
+```bash
+cd backend
+npm run db:reset
+```
+
+**⚠️ OGOHLANTIRISH:** Bu script barcha ma'lumotlarni o'chirib yuboradi!
+
+**Script qilgan ishlar:**
+1. Barcha jadvallarni o'chiradi (drop)
+2. Migration'larni qayta ishga tushiradi
+3. Default ma'lumotlarni yuklaydi:
+   - 4 ta role: USER, ADMIN, MODERATOR, SUPER_ADMIN
+   - Default Super Admin user:
+     - Email: `admin@example.com`
+     - Password: `superadmin123`
+
+**⚡ Muhim:** Default admin parolini birinchi login'dan keyin o'zgartiring!
+
+**Qachon ishlatiladi:**
+- Development muhitida test ma'lumotlarini tozalash
+- Migration muammolarini hal qilish
+- Database strukturasini yangilashdan keyin
+- Loyihani qaytadan boshlashda
 
 ## 🏗️ Strukturaviy To'g'irlashlar
 
